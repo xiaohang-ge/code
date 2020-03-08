@@ -1,2 +1,3 @@
-from sklearn.model_selection import train_test_split
-from cv2
+a=1
+b=2
+print(a+b)
