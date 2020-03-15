@@ -9,10 +9,10 @@ from tensorflow.python.framework import graph_util
 
 import matplotlib.pyplot as plt
  
-my_faces_path = './my_faces_1'
-other_faces_path = './my_faces_2'
-my_faces_path1 = './my_faces_3'
-other_faces_path1 = './my_faces_4'
+my_faces_path = './daisy'
+other_faces_path = './dandelion'
+my_faces_path1 = './roses'
+other_faces_path1 = './sunflowers'
 size = 64
  
 imgs = []
@@ -138,11 +138,25 @@ def cnnLayer():
     conv3 = tf.nn.relu(conv2d(drop2, W3) + b3)
     pool3 = maxPool(conv3)
     drop3 = dropout(pool3, keep_prob_5)
+
+    # 第四层
+    W4 = weightVariable([3,3,64,128])
+    b4 = biasVariable([128])
+    conv4 = tf.nn.relu(conv2d(drop3, W4) + b4)
+    pool4 = maxPool(conv4)
+    drop4 = dropout(pool4, keep_prob_5)
+
+    # 第五层
+    W5 = weightVariable([5,5,128,128])
+    b5 = biasVariable([128])
+    conv5 = tf.nn.relu(conv2d(drop4, W5) + b5)
+    pool5 = maxPool(conv5)
+    drop5 = dropout(pool5, keep_prob_5)
  
     # 全连接层
-    Wf = weightVariable([8*16*32, 512])
+    Wf = weightVariable([2*2*128, 512])
     bf = biasVariable([512])
-    drop3_flat = tf.reshape(drop3, [-1, 8*16*32])
+    drop3_flat = tf.reshape(drop5, [-1, 2*2*128])
     dense = tf.nn.relu(tf.matmul(drop3_flat, Wf) + bf)
     dropf = dropout(dense, keep_prob_75)
  
@@ -169,8 +183,8 @@ def cnnTrain():
     saver = tf.train.Saver()
     
     with tf.Session() as sess:
-        fig_loss = np.zeros([1000])
-        fig_accuracy = np.zeros([1000])
+        fig_loss = np.zeros([10000])
+        fig_accuracy = np.zeros([10000])
         sess.run(tf.global_variables_initializer())
  
         summary_writer = tf.summary.FileWriter('./tmp', graph=tf.get_default_graph())
@@ -194,13 +208,13 @@ def cnnTrain():
                 summary_writer.add_summary(summary, n*num_batch+i)
                 # 打印损失
                 fig_loss[n*num_batch+i]=loss
-                #print(n*num_batch+i, loss)
+                print(n*num_batch+i, loss)
 
  
                 if (n*num_batch+i) % 10 == 0:
                     # 获取测试数据的准确率
                     acc = accuracy.eval({x:test_x, y_:test_y, keep_prob_5:1.0, keep_prob_75:1.0})
-                    print(n*num_batch+i, acc)
+                    #print(n*num_batch+i, acc)
                     fig_accuracy[n*num_batch+i]=acc
                     with tf.gfile.FastGFile('model.pb', mode='wb') as f:
                             f.write(constant_graph.SerializeToString())
