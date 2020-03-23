@@ -1,0 +1,92 @@
+import os
+import math
+import numpy as np
+import tensorflow as tf
+#project_root='/home/data'
+#train_dir = os.path.join(project_root, 'dataset/images/train/')
+train_dir = '/home/data/10'
+
+mask = []
+label_mask = []
+head = []
+label_head = []
+back = []
+label_back = []
+mid_mask = []
+label_mid_mask = []
+def get_files(file_dir, ratio):
+    for file in os.listdir(file_dir):
+        if file.endswith('.jpg'):
+            if "mask20200205" in file:
+                mask.append(file_dir +'/'+ file)
+                label_mask.append(0)
+    for file in os.listdir(file_dir):
+        if file.endswith('.jpg'):
+            if "MCdata20200210" in file:
+                head.append(file_dir +'/'+file)
+                label_head.append(1)
+    for file in os.listdir(file_dir):
+        if file.endswith('.jpg'):
+            if "20200207_maskpic" in file:
+                back.append(file_dir +'/'+ file) 
+                label_back.append(2)
+    for file in os.listdir(file_dir):
+        if file.endswith('.jpg'):
+            if "LSmask" in file:
+                mid_mask.append(file_dir +'/'+file)
+                label_mid_mask.append(3)
+    image_list = np.hstack((mask, head, back, mid_mask))
+    label_list = np.hstack((label_mask, label_head, label_back, label_mid_mask))
+    print('image_list',image_list)
+    print('label_list',label_list)
+    #利用shuffle打乱顺序
+    temp = np.array([image_list, label_list])
+    temp = temp.transpose()
+    np.random.shuffle(temp)
+    
+    #将所有的img和lab转换成list
+    all_image_list = list(temp[:, 0])
+    all_label_list = list(temp[:, 1])
+ 
+    #将所得List分为两部分，一部分用来训练tra，一部分用来测试val
+    #ratio是测试集的比例
+    n_sample = len(all_label_list)
+    n_val = int(math.ceil(n_sample*ratio))   
+    n_train = n_sample - n_val   
+ 
+    tra_images = all_image_list[0:n_train]
+    tra_labels = all_label_list[0:n_train]
+    tra_labels = [int(float(i)) for i in tra_labels]
+    val_images = all_image_list[n_train:-1]
+    val_labels = all_label_list[n_train:-1]
+    val_labels = [int(float(i)) for i in val_labels]
+ 
+    return tra_images, tra_labels, val_images, val_labels
+    
+    
+#---------------------------------------------------------------------------
+
+def get_batch(image, label, image_W, image_H, batch_size, capacity):
+
+    image = tf.cast(image, tf.string)
+    label = tf.cast(label, tf.int32)
+ 
+    input_queue = tf.train.slice_input_producer([image, label])
+ 
+    label = input_queue[1]
+    image_contents = tf.read_file(input_queue[0]) 
+    
+    image = tf.image.decode_jpeg(image_contents, channels=3) 
+    
+    image = tf.image.resize_image_with_crop_or_pad(image, image_W, image_H)
+    image = tf.image.per_image_standardization(image)
+ 
+    image_batch, label_batch = tf.train.batch([image, label],
+                                                batch_size= batch_size,
+                                                num_threads= 32, 
+                                                capacity = capacity)
+    label_batch = tf.reshape(label_batch, [batch_size])
+    image_batch = tf.cast(image_batch, tf.float32)
+    return image_batch, label_batch            
+ 
+
