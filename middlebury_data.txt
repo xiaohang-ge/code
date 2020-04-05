@@ -1,0 +1,2 @@
+# wget -r -np -A png,pfm,pgm,txt http://vision.middlebury.edu/stereo/data/scenes2014/datasets/
+# wget -r -np -A png,pfm,pgm,txt http://vision.middlebury.edu/stereo/data/scenes2006/FullSize/
